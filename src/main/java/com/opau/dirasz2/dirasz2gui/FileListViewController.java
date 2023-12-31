@@ -13,6 +13,7 @@ import javafx.scene.paint.Paint;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.javafx.IkonResolver;
 
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,8 +26,11 @@ import static com.opau.dirasz2.dirasz2gui.FileListViewController.ListItemCompara
 public class FileListViewController {
 
     ListView<ListItem> list;
-    public FileListViewController(Scene scene) {
-        list = (ListView<ListItem>) scene.lookup("#fileList");
+    App app;
+    public FileListViewController(App app) {
+
+        this.app = app;
+        list = (ListView<ListItem>) app.scene.lookup("#fileList");
         try {
             listFiles(System.getProperty("user.home"));
         } catch (IOException e) {
@@ -38,12 +42,24 @@ public class FileListViewController {
         list.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 ListItem itm = list.getSelectionModel().getSelectedItem();
-                if (itm.type == "DIR") {
+                if (itm.type.equals("DIR")) {
                     try {
                         listFiles(itm.path);
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
+                } else if (itm.type.equals("remixal-file-music-fill")) {
+                    Programme p = null;
+                    try {
+                        p = new FileProgramme(itm.path);
+                    } catch (UnsupportedAudioFileException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    app.programmeController.enqueueAfterLast(p);
+                } else {
+                    //load macro
                 }
             }
         });
@@ -104,7 +120,8 @@ public class FileListViewController {
     }
 
     boolean isAudioFile(String n) {
-        return (n.endsWith(".mp3") || n.endsWith(".flac") || n.endsWith(".wav"));
+        //return (n.endsWith(".mp3") || n.endsWith(".flac") || n.endsWith(".wav"));
+        return (n.endsWith(".wav"));
     }
 
     public class ListItemCell extends ListCell<ListItem> {

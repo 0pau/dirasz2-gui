@@ -12,6 +12,7 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.effect.InnerShadow?>
 <?import javafx.scene.input.KeyCodeCombination?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -19,6 +20,7 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
 <VBox minHeight="640.0" minWidth="800.0" prefHeight="640.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.opau.dirasz2.dirasz2gui.MainWindowController">
@@ -84,7 +86,7 @@
       </MenuBar>
       <HBox alignment="CENTER_LEFT" prefWidth="200.0" spacing="15.0">
          <children>
-            <HBox fillHeight="false" opacity="0.5" spacing="5.0" style="-fx-background-color: red; -fx-background-radius: 5;" HBox.hgrow="NEVER">
+            <HBox id="onAirSign" fillHeight="false" opacity="0.4" spacing="5.0" style="-fx-background-color: red; -fx-background-radius: 5;" HBox.hgrow="NEVER">
                <children>
                   <Label text="ON AIR" textFill="WHITE">
                      <font>
@@ -96,6 +98,13 @@
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                </padding>
+               <effect>
+                  <InnerShadow>
+                     <color>
+                        <Color red="0.42105263471603394" green="0.0487329438328743" blue="0.0487329438328743" />
+                     </color>
+                  </InnerShadow>
+               </effect>
             </HBox>
             <Label opacity="0.4" text="RPi">
                <font>
@@ -129,20 +138,13 @@
                         <Font name="System Bold" size="13.0" />
                      </font>
                   </Label>
-                  <Label text="00:00:00" />
-               </children>
-            </HBox>
-            <HBox alignment="CENTER" fillHeight="false" spacing="5.0">
-               <children>
-                  <Label text="RPi-kapcs.">
+                  <Label id="remainingCounter" text="--:--:--">
                      <font>
-                        <Font name="System Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label text="nincs" />
+                        <Font name="Monospaced Bold" size="13.0" />
+                     </font></Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER" fillHeight="false" spacing="5.0">
+            <HBox alignment="CENTER_LEFT" fillHeight="false" spacing="5.0" HBox.hgrow="ALWAYS">
                <children>
                   <Label text="Internetkapcs.">
                      <font>
@@ -152,6 +154,7 @@
                   <Label text="nincs" />
                </children>
             </HBox>
+            <Button id="startStop" mnemonicParsing="false" text="Műsor indítása" />
          </children>
          <padding>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -172,13 +175,13 @@
                   <Button mnemonicParsing="false" text="Műsor hozzáadása" />
                </children>
             </HBox>
-            <TableView prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+            <TableView id="programmeTable" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
               <columns>
-                <TableColumn editable="false" maxWidth="32.0" prefWidth="100.0" sortable="false" />
-                <TableColumn maxWidth="100.0" prefWidth="75.0" text="Kezdés" />
-                  <TableColumn maxWidth="100.0" prefWidth="75.0" text="Hossz" />
+                <TableColumn editable="false" maxWidth="24.0" minWidth="24.0" prefWidth="24.0" resizable="false" sortable="false" />
+                <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Kezdés" />
+                  <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Hossz" />
                   <TableColumn maxWidth="5555.0" prefWidth="75.0" text="Műsor címe" />
-                  <TableColumn maxWidth="100.0" prefWidth="75.0" text="Típus" />
+                  <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Típus" />
               </columns>
                <columnResizePolicy>
                   <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

@@ -5,6 +5,7 @@ module com.opau.dirasz2.dirasz2gui {
     requires org.controlsfx.controls;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.bootstrapfx.core;
+    requires java.desktop;
 
     opens com.opau.dirasz2.dirasz2gui to javafx.fxml;
     exports com.opau.dirasz2.dirasz2gui;
