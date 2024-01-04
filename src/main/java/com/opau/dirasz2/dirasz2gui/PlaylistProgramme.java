@@ -8,6 +8,5 @@ public class PlaylistProgramme extends Programme {
     private ArrayList<FileProgramme> items;
     private int playCount;
     private Order order;
-
     public enum Order {LINEAR,SHUFFLE}
 }

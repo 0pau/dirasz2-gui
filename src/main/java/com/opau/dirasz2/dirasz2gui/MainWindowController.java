@@ -4,8 +4,10 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 
+import java.awt.event.ActionEvent;
 import java.util.Calendar;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,6 +20,7 @@ public class MainWindowController {
     void initialize() {
         initialized = true;
     }
+
 
     public void setApp(App app) {
         this.app = app;
@@ -37,6 +40,7 @@ public class MainWindowController {
         });
 
         HBox onAirSign = (HBox) app.scene.lookup("#onAirSign");
+        Label elapsedTimeLabel = (Label) app.scene.lookup("#elapsedTimeLabel");
 
         app.programmeController.setRunStateChangeListener((run)->{
             Platform.runLater(()->{
@@ -49,6 +53,8 @@ public class MainWindowController {
                     Label l = (Label) app.scene.lookup("#remainingCounter");
                     l.setText("--:--:--");
                 }
+                elapsedTimeLabel.setManaged(run);
+                elapsedTimeLabel.setVisible(run);
             });
 
         });
@@ -57,7 +63,13 @@ public class MainWindowController {
             Platform.runLater(()->{
                 Label l = (Label) app.scene.lookup("#remainingCounter");
                 l.setText(Utils.formatTimeInt(rem, true));
+                elapsedTimeLabel.setText(Utils.formatTimeInt(app.programmeController.elapsedSecs, true));
             });
+        });
+
+        Slider localSlider = (Slider) app.scene.lookup("#localLineVolumeSlider");
+        localSlider.valueProperty().addListener((d)->{
+            app.programmeController.setVolume((float)localSlider.getValue());
         });
 
     }

@@ -7,8 +7,10 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TitledPane?>
@@ -50,11 +52,7 @@
                         <KeyCodeCombination alt="UP" code="COMMA" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                      </accelerator>
                   </MenuItem>
-                  <MenuItem mnemonicParsing="false" text="Kilépés">
-                     <accelerator>
-                        <KeyCodeCombination alt="DOWN" code="F4" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator>
-                  </MenuItem>
+                  <MenuItem mnemonicParsing="false" text="Kilépés" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Műsor">
@@ -62,16 +60,6 @@
               <MenuItem mnemonicParsing="false" text="Műsor indítása">
                      <accelerator>
                         <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
-                     </accelerator>
-                  </MenuItem>
-                  <MenuItem disable="true" mnemonicParsing="false" text="Műsor leállítása">
-                     <accelerator>
-                        <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
-                     </accelerator>
-                  </MenuItem>
-                  <MenuItem disable="true" mnemonicParsing="false" text="Váltás kézi vezérlésre">
-                     <accelerator>
-                        <KeyCodeCombination alt="UP" code="H" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
                      </accelerator>
                   </MenuItem>
             </items>
@@ -86,14 +74,17 @@
       </MenuBar>
       <HBox alignment="CENTER_LEFT" prefWidth="200.0" spacing="15.0">
          <children>
-            <HBox id="onAirSign" fillHeight="false" opacity="0.4" spacing="5.0" style="-fx-background-color: red; -fx-background-radius: 5;" HBox.hgrow="NEVER">
+            <HBox id="onAirSign" alignment="CENTER" fillHeight="false" opacity="0.4" spacing="5.0" style="-fx-background-color: red; -fx-background-radius: 5;" HBox.hgrow="NEVER">
                <children>
                   <Label text="ON AIR" textFill="WHITE">
                      <font>
                         <Font name="System Bold" size="13.0" />
                      </font>
                   </Label>
-                  <Label managed="false" text="00:00:00" textFill="WHITE" />
+                  <Label id="elapsedTimeLabel" managed="false" text="00:00:00" textFill="WHITE" visible="false">
+                     <font>
+                        <Font name="Monospaced Bold" size="13.0" />
+                     </font></Label>
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -106,24 +97,9 @@
                   </InnerShadow>
                </effect>
             </HBox>
-            <Label opacity="0.4" text="RPi">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
             <HBox alignment="CENTER" fillHeight="false" spacing="5.0">
                <children>
-                  <Label opacity="0.4" text="FM">
-                     <font>
-                        <Font name="System Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label opacity="0.4" text="RDS">
-                     <font>
-                        <Font name="System Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label opacity="0.4" text="HLS">
+                  <Label id="udpClientStateLabel" opacity="0.25" text="TCP" textFill="#27ab3f">
                      <font>
                         <Font name="System Bold" size="13.0" />
                      </font>
@@ -131,7 +107,7 @@
                </children>
             </HBox>
             <Separator orientation="VERTICAL" />
-            <HBox alignment="CENTER" fillHeight="false" spacing="5.0">
+            <HBox alignment="CENTER_LEFT" fillHeight="false" spacing="5.0" HBox.hgrow="ALWAYS">
                <children>
                   <Label text="Hátralévő idő">
                      <font>
@@ -142,16 +118,6 @@
                      <font>
                         <Font name="Monospaced Bold" size="13.0" />
                      </font></Label>
-               </children>
-            </HBox>
-            <HBox alignment="CENTER_LEFT" fillHeight="false" spacing="5.0" HBox.hgrow="ALWAYS">
-               <children>
-                  <Label text="Internetkapcs.">
-                     <font>
-                        <Font name="System Bold" size="13.0" />
-                     </font>
-                  </Label>
-                  <Label text="nincs" />
                </children>
             </HBox>
             <Button id="startStop" mnemonicParsing="false" text="Műsor indítása" />
@@ -178,10 +144,10 @@
             <TableView id="programmeTable" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
               <columns>
                 <TableColumn editable="false" maxWidth="24.0" minWidth="24.0" prefWidth="24.0" resizable="false" sortable="false" />
-                <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Kezdés" />
-                  <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Hossz" />
-                  <TableColumn maxWidth="5555.0" prefWidth="75.0" text="Műsor címe" />
-                  <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Típus" />
+                <TableColumn editable="false" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" sortable="false" text="Kezdés" />
+                  <TableColumn editable="false" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" sortable="false" text="Hossz" />
+                  <TableColumn editable="false" maxWidth="5555.0" prefWidth="75.0" sortable="false" text="Műsor címe" />
+                  <TableColumn editable="false" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" sortable="false" text="Típus" />
               </columns>
                <columnResizePolicy>
                   <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -221,13 +187,46 @@
                   </TitledPane>
                   <TitledPane collapsible="false" prefWidth="200.0" text="Hangforrások" GridPane.columnIndex="1" GridPane.vgrow="ALWAYS">
                      <content>
-                        <VBox prefHeight="200.0" prefWidth="100.0" />
+                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefHeight="200.0" prefWidth="200.0">
+                           <content>
+                              <VBox prefWidth="100.0">
+                                 <children>
+                                    <HBox prefWidth="200.0" style="-fx-border-radius: 5px; -fx-border-style: solid; -fx-border-color: #999999;">
+                                       <children>
+                                          <Label opacity="0.75" text="A hangforrások csak kézi módban működnek." textOverrun="CLIP" wrapText="true" />
+                                       </children>
+                                       <VBox.margin>
+                                          <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                                       </VBox.margin>
+                                       <padding>
+                                          <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                       </padding>
+                                    </HBox>
+                                    <VBox id="audioSourcesList" prefWidth="100.0" />
+                                 </children>
+                              </VBox>
+                           </content>
+                        </ScrollPane>
                      </content>
                   </TitledPane>
                   <TitledPane collapsible="false" prefWidth="200.0" text="Kimeneti jel" GridPane.columnIndex="2" GridPane.vgrow="ALWAYS">
                      <content>
-                        <VBox prefHeight="200.0" prefWidth="100.0" />
+                        <VBox prefHeight="200.0">
+                           <children>
+                              <VBox prefWidth="291.0" spacing="5.0" VBox.vgrow="NEVER">
+                                 <children>
+                                    <Label text="Helyi hangerő" />
+                                    <Slider id="localLineVolumeSlider" value="100.0" />
+                                 </children>
+                                 <VBox.margin>
+                                    <Insets bottom="10.0" />
+                                 </VBox.margin>
+                              </VBox>
+                           </children></VBox>
                      </content>
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
                   </TitledPane>
                </children>
                <VBox.margin>

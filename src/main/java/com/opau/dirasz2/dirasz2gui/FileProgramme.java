@@ -13,16 +13,17 @@ public class FileProgramme extends Programme {
     private String path;
     private File f;
     AudioInputStream stream;
+    AudioInputStream resampledStream;
     byte[] buffer;
 
     public FileProgramme(String path) throws UnsupportedAudioFileException, IOException {
         super.type = Type.FILE;
         f = new File(path);
         setLabel(f.getName());
-        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(f);
-        AudioFormat format = audioInputStream.getFormat();
-        long frames = audioInputStream.getFrameLength();
-        double durationInSeconds = (frames+0.0) / format.getFrameRate();
+        stream = AudioSystem.getAudioInputStream(f);
+        AudioFormat source = stream.getFormat();
+        long frames = stream.getFrameLength();
+        double durationInSeconds = (frames+0.0) / source.getFrameRate();
         setLength((int)durationInSeconds);
     }
 
@@ -36,15 +37,20 @@ public class FileProgramme extends Programme {
     @Override
     public void start() throws IOException, UnsupportedAudioFileException {
         super.start();
-        stream = AudioSystem.getAudioInputStream(f);
+        //stream = AudioSystem.getAudioInputStream(f);
+        //stream.close();
+        AudioFormat soruceFmt = stream.getFormat();
+        AudioFormat targetFormat = new AudioFormat(soruceFmt.getEncoding(), 44100, 16, 2, soruceFmt.getFrameSize(), 44100, soruceFmt.isBigEndian());
+        resampledStream = AudioSystem.getAudioInputStream(targetFormat, stream);
         if (dataAvailableListener != null) {
             int bytesRead = 0;
             buffer = new byte[1024];
             while (bytesRead != -1) {
-                bytesRead = stream.read(buffer, 0, buffer.length);
+                bytesRead = resampledStream.read(buffer, 0, buffer.length);
                 dataAvailableListener.onAvailable(buffer, bytesRead);
             }
             buffer = null;
+            resampledStream.close();
             stream.close();
         }
     }

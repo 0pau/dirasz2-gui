@@ -10,6 +10,7 @@ import javafx.util.Callback;
 
 import javax.sound.sampled.*;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,8 +28,10 @@ public class ProgrammeController {
     Thread playService;
     RemainingTimeChangedListener remainingTimeChangedListener;
     RunStateChangeListener runStateChangeListener;
+    ElapsedTimeListener elapsedTimeListener;
     SourceDataLine audioDataLine;
     Thread playThread;
+    int elapsedSecs = 0;
 
     public ProgrammeController(App app) throws LineUnavailableException {
         this.app = app;
@@ -39,6 +42,14 @@ public class ProgrammeController {
         table.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("label"));
         table.getColumns().get(4).setCellValueFactory(new PropertyValueFactory<>("typeString"));
         setupContextMenu();
+
+        DataLine.Info speakerInfo = new DataLine.Info(SourceDataLine.class, new AudioFormat(44100, 16, 2, true, false));
+        try {
+            audioDataLine = (SourceDataLine) AudioSystem.getLine(speakerInfo);
+            audioDataLine.open();
+        } catch (LineUnavailableException e) {
+            System.out.println(e);
+        }
     }
 
     void setupContextMenu() {
@@ -61,6 +72,7 @@ public class ProgrammeController {
             return false;
         }
         setRunning(true);
+        elapsedSecs = 0;
 
         System.out.println("HOSSZ " + table.getItems().get(0).getStartTimeInt());
 
@@ -79,6 +91,9 @@ public class ProgrammeController {
         playThread.setName(threadName);
         System.out.println(threadName);
         playThread.start();
+
+
+
         return true;
     }
 
@@ -87,7 +102,7 @@ public class ProgrammeController {
         setRunning(false);
         loopService.close();
         audioDataLine.drain();
-        audioDataLine.stop();
+        //audioDataLine.stop();
         playThread.interrupt();
         playThread.join();
     }
@@ -102,14 +117,9 @@ public class ProgrammeController {
             loopService = Executors.newSingleThreadScheduledExecutor();
             loopService.scheduleAtFixedRate(()->{
                 c.refreshRemainingCounter();
+                elapsedSecs++;
             },1,1,TimeUnit.SECONDS);
-            DataLine.Info speakerInfo = new DataLine.Info(SourceDataLine.class, new AudioFormat(44100, 16, 2, true, false));
-            try {
-                audioDataLine = (SourceDataLine) AudioSystem.getLine(speakerInfo);
-                audioDataLine.open();
-            } catch (LineUnavailableException e) {
-                System.out.println(e);
-            }
+            //audioDataLineSetup
             audioDataLine.start();
             runNextProgramme();
             System.out.println("Thread exit.");
@@ -137,7 +147,12 @@ public class ProgrammeController {
                     nextEventAt = next.getStartTimeInt()+next.getLengthInt();
                     next.setDataAvailableListener((data, x)->{
                         if (isRunning) {
-                            audioDataLine.write(data, 0, x);
+                            try {
+                                audioDataLine.write(data, 0, x);
+                                app.audioServer.writeStream(data, x);
+                            } catch (Exception e) {
+                                System.out.println(e);
+                            }
                         } else {
                             next.stop();
                         }
@@ -150,6 +165,7 @@ public class ProgrammeController {
                     try {
                         next.start();
                     } catch (Exception e) {
+                        System.out.println("[PROGRAMME] " + e);
                         throw new RuntimeException(e);
                     }
                 }, remaining, TimeUnit.SECONDS);
@@ -188,6 +204,11 @@ public class ProgrammeController {
         enqueue(p);
     }
 
+    public void setVolume(float vol) {
+        final FloatControl volumeControl = (FloatControl) audioDataLine.getControl( FloatControl.Type.MASTER_GAIN );
+        volumeControl.setValue( 20.0f * (float) Math.log10( vol / 100.0 ) );
+    }
+
     void setRunning(boolean running) {
         if (!running) {
             service.shutdownNow();
@@ -222,5 +243,13 @@ public class ProgrammeController {
 
     public void setRunStateChangeListener(RunStateChangeListener runStateChangeListener) {
         this.runStateChangeListener = runStateChangeListener;
+    }
+
+    public interface ElapsedTimeListener {
+        void onEvent(int elapsed);
+    }
+
+    public void setElapsedTimeListener(ElapsedTimeListener elapsedTimeListener) {
+        this.elapsedTimeListener = elapsedTimeListener;
     }
 }
