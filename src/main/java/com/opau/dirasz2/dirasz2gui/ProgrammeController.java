@@ -1,39 +1,60 @@
 package com.opau.dirasz2.dirasz2gui;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import javax.sound.sampled.*;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Queue;
+import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 public class ProgrammeController {
     int position = -1;
+    String currentUUID = "";
     App app;
-    TableView<Programme> table;
+    private TableView<Programme> table;
     boolean isRunning = false;
     public int nextEventAt = 0;
-    ScheduledExecutorService loopService;
-    Thread playService;
-    RemainingTimeChangedListener remainingTimeChangedListener;
-    RunStateChangeListener runStateChangeListener;
-    ElapsedTimeListener elapsedTimeListener;
-    SourceDataLine audioDataLine;
-    Thread playThread;
+    private ScheduledExecutorService loopService;
+    private RemainingTimeChangedListener remainingTimeChangedListener;
+    private RunStateChangeListener runStateChangeListener;
+    private SourceDataLine audioDataLine;
+    private Thread playThread;
     int elapsedSecs = 0;
+    PipedInputStream audioStream = new PipedInputStream();
+    PipedOutputStream audioStreamOut;
+    private double masterGain = 100;
+    private double currentOutVolume = 0;
+    private boolean manual = false;
+    public String currentTitle = "Ismeretlen";
 
-    public ProgrammeController(App app) throws LineUnavailableException {
+    public ProgrammeController(App app) {
+
         this.app = app;
         table = (TableView<Programme>) app.scene.lookup("#programmeTable");
         table.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("statusString"));
@@ -42,14 +63,15 @@ public class ProgrammeController {
         table.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("label"));
         table.getColumns().get(4).setCellValueFactory(new PropertyValueFactory<>("typeString"));
         setupContextMenu();
-
         DataLine.Info speakerInfo = new DataLine.Info(SourceDataLine.class, new AudioFormat(44100, 16, 2, true, false));
         try {
+            audioStreamOut = new PipedOutputStream();
             audioDataLine = (SourceDataLine) AudioSystem.getLine(speakerInfo);
             audioDataLine.open();
-        } catch (LineUnavailableException e) {
+        } catch (Exception e) {
             System.out.println(e);
         }
+        fillVolumeCanvas(0);
     }
 
     void setupContextMenu() {
@@ -57,10 +79,21 @@ public class ProgrammeController {
         MenuItem move = new MenuItem("Kezdési időpont módosítása");
         MenuItem rename = new MenuItem("Átnevezés");
         MenuItem remove = new MenuItem("Törlés");
+        menu.setOnAction((e)->{
+            if (((MenuItem)e.getTarget()).equals(remove)) {
+                remove(table.getSelectionModel().getSelectedItem().uuid);
+            } else if (((MenuItem)e.getTarget()).equals(move)) {
+                TimePicker tp = new TimePicker(app.scene, false, table.getSelectionModel().getSelectedItem().getStartTimeInt());
+                int t = tp.show(null);
+                if (t >= 0) {
+                    move(table.getSelectionModel().getSelectedItem().uuid, t);
+                }
+            }
+        });
         menu.getItems().addAll(move, rename, remove);
         table.setContextMenu(menu);
         menu.setOnShown((a)->{
-            boolean r = (isRunning && table.getSelectionModel().getSelectedIndex() == position);
+            boolean r = ((isRunning && table.getSelectionModel().getSelectedIndex() == position) || table.getSelectionModel().getSelectedItem() == null);
             move.setDisable(r);
             rename.setDisable(r);
             remove.setDisable(r);
@@ -74,37 +107,37 @@ public class ProgrammeController {
         setRunning(true);
         elapsedSecs = 0;
 
-        System.out.println("HOSSZ " + table.getItems().get(0).getStartTimeInt());
-
-        if (table.getItems().size() >0 && table.getItems().get(0).getStartTimeInt() == 0) {
-            table.getItems().get(0).setStartTime(Utils.getTime());
+        if (!table.getItems().isEmpty() && table.getItems().getFirst().getStartTimeInt() == 0) {
+            table.getItems().getFirst().setStartTime(Utils.getTime());
             for (int i = 1; i < table.getItems().size(); i++) {
                 table.getItems().get(i).setStartTime(
                         table.getItems().get(i-1).getStartTimeInt()+table.getItems().get(i-1).getLengthInt()
                 );
             }
         }
-        service = Executors.newSingleThreadScheduledExecutor();
         position = -1;
         playThread = new PlaybackThread(this);
         String threadName = "play" + Utils.getTime();
         playThread.setName(threadName);
-        System.out.println(threadName);
         playThread.start();
-
-
-
         return true;
     }
 
-    ScheduledExecutorService service;
     public void stop() throws InterruptedException {
+        try {
+            if (app.recorder.isRecording) {
+                app.recorder.stopRecording();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        currentTitle = "Jelenleg nincs adás.";
+        remainingTimeChangedListener.onEvent(0);
         setRunning(false);
         loopService.close();
         audioDataLine.drain();
-        //audioDataLine.stop();
-        playThread.interrupt();
-        playThread.join();
+        //playThread.interrupt();
+        //playThread.join();
     }
     public class PlaybackThread extends Thread {
         ProgrammeController c;
@@ -114,59 +147,142 @@ public class ProgrammeController {
         @Override
         public void run() {
             super.run();
+
+            Timeline timeline = new Timeline(new KeyFrame(Duration.millis(8), new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    double f = currentOutVolume/15000;
+                    fillVolumeCanvas(f);
+                }
+            }));
+            timeline.setCycleCount(Timeline.INDEFINITE);
+            timeline.play();
             loopService = Executors.newSingleThreadScheduledExecutor();
             loopService.scheduleAtFixedRate(()->{
                 c.refreshRemainingCounter();
                 elapsedSecs++;
             },1,1,TimeUnit.SECONDS);
-            //audioDataLineSetup
             audioDataLine.start();
-            runNextProgramme();
+            try {
+                runNextProgramme();
+                timeline.stop();
+            } catch (InterruptedException | IOException e) {
+                throw new RuntimeException(e);
+            }
             System.out.println("Thread exit.");
         }
     }
 
-    private void runNextProgramme() {
+    private void fillVolumeCanvas(double val) {
+        Canvas visualizer = (Canvas)app.scene.lookup("#visCanvas");
+        GraphicsContext context = visualizer.getGraphicsContext2D();
+        context.setFill(Color.rgb(30,30,30));
+        context.fillRect(0,0,10,20);
+        context.setFill(Color.rgb(0,255, 0));
+        double height = 20*val;
+        context.fillRect(0, 20-height, 10, height);
+    }
+
+    private void runNextProgramme() throws InterruptedException, IOException {
+
+        if (manual) {
+            try {
+                audioStream = new PipedInputStream();
+                app.lineMixer.out = new PipedOutputStream(audioStream);
+                app.lineMixer.open();
+                while (isRunning) {
+                    byte[] d = audioStream.readNBytes(1024);
+                    writeToStreams(d);
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+            return;
+        }
+
         position++;
         if (position < table.getItems().size()) {
             Programme next = table.getItems().get(position);
-            Calendar calendar = Calendar.getInstance();
-            int current = Utils.timeToInt(calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
-                    calendar.get(Calendar.SECOND));
+            int current = Utils.getCurrentTimeInt();
             int remaining = next.getStartTimeInt()-current;
             nextEventAt = next.getStartTimeInt();
             System.out.println("[PROGRAMME] Time till next (" + next.getLabel() + "): " + remaining + "s");
-            if (remaining >= 0) {
+
+            if (remaining >= -1) {
+                next.setState(Programme.ProgrammeState.QUEUED);
+            } else {
+                next.setState(Programme.ProgrammeState.ERRORED);
+                runNextProgramme();
+                return;
+            }
+
+            while (remaining >= 0 && isRunning) {
+                byte[] b = new byte[16];
+                writeToStreams(b);
+                remaining = next.getStartTimeInt()-Utils.getCurrentTimeInt();
+            }
+            nextEventAt = next.getStartTimeInt()+next.getLengthInt();
+            try {
+                audioStreamOut = new PipedOutputStream();
+                audioStream = new PipedInputStream();
+                audioStreamOut.connect(audioStream);
+                next.out = audioStreamOut;
+                next.setState(Programme.ProgrammeState.RUNNING);
+                currentTitle = next.getLabel();
+                remainingTimeChangedListener.onEvent(remaining);
+                next.start();
+                currentUUID = next.uuid;
+                while (next.getProgrammeState() == Programme.ProgrammeState.RUNNING && isRunning) {
+                    byte[] d = audioStream.readNBytes(512);
+                    writeToStreams(d);
+                }
+                while (next.getProgrammeState() != Programme.ProgrammeState.FINISHED && isRunning);
+                currentUUID = "";
+                if (!isRunning) {
+                    fillVolumeCanvas(0);
+                    next.stopProgramme();
+                } else {
+                    System.out.println("NEXT");
+                    runNextProgramme();
+                }
+            } catch (Exception e) {
+                System.out.println("[PROGRAMME] " + e);
+            }
+
+            /* region Legacy code
+            if (remaining >= -1) {
+                if (remaining > 0 && app.recorder.isRecording) {
+                    byte[] b = new byte[44100*2*2*remaining];
+                    app.recorder.write(b);
+                }
                 next.setState(Programme.ProgrammeState.QUEUED);
                 service.schedule(()->{
                     if (!Thread.currentThread().isAlive()) {
                         return;
                     }
-                    System.out.println(Thread.currentThread().getName());
                     nextEventAt = next.getStartTimeInt()+next.getLengthInt();
-                    next.setDataAvailableListener((data, x)->{
-                        if (isRunning) {
-                            try {
-                                audioDataLine.write(data, 0, x);
-                                app.audioServer.writeStream(data, x);
-                            } catch (Exception e) {
-                                System.out.println(e);
-                            }
-                        } else {
-                            next.stop();
+                    try {
+                        audioStreamOut = new PipedOutputStream();
+                        audioStream = new PipedInputStream();
+                        audioStreamOut.connect(audioStream);
+                        next.out = audioStreamOut;
+                        next.setState(Programme.ProgrammeState.RUNNING);
+                        currentTitle = next.getLabel();
+                        remainingTimeChangedListener.onEvent(remaining);
+                        next.start();
+                        while (next.getProgrammeState() == Programme.ProgrammeState.RUNNING && isRunning) {
+                            byte[] d = audioStream.readNBytes(1024);
+                            writeToStreams(d);
                         }
-                    });
-                    next.setStateListener((state)->{
-                        if (state == Programme.ProgrammeState.FINISHED) {
+                        while (next.getProgrammeState() != Programme.ProgrammeState.FINISHED && isRunning);
+                        if (!isRunning) {
+                            next.stopProgramme();
+                        } else {
+                            System.out.println("NEXT");
                             runNextProgramme();
                         }
-                    });
-                    try {
-                        next.start();
                     } catch (Exception e) {
                         System.out.println("[PROGRAMME] " + e);
-                        throw new RuntimeException(e);
                     }
                 }, remaining, TimeUnit.SECONDS);
             } else {
@@ -174,10 +290,40 @@ public class ProgrammeController {
                 next.setState(Programme.ProgrammeState.ERRORED);
                 runNextProgramme();
             }
+            endregion
+            */
         } else {
-            setRunning(false);
-            loopService.close();
+            stop();
         }
+    }
+
+    void writeToStreams(byte[] d) throws IOException {
+        for (int i = 0; i < d.length-1; i+=2) {
+            if (masterGain != 101) {
+                short sampleValue = (short) ((d[i + 1] & 0xFF) << 8 | (d[i] & 0xFF));
+                sampleValue = (short) (sampleValue * (masterGain / 100));
+                d[i] = (byte) (sampleValue & 0xFF);
+                d[i + 1] = (byte) ((sampleValue >> 8) & 0xFF);
+            }
+        }
+
+        long sum = 0;
+        for (int i = 0; i < d.length; i+=2) {
+            short b = (short) ((d[i + 1] << 8) | (d[i] & 0xFF));
+            sum += b * b;
+        }
+        currentOutVolume = Math.sqrt((double) sum / d.length);
+
+        audioDataLine.write(d, 0, d.length);
+
+        app.audioServer.writeStream(d, d.length);
+        if (app.recorder.isRecording) {
+            app.recorder.write(d);
+        }
+    }
+
+    public void setMasterGain(double gain) {
+        masterGain = gain;
     }
 
     public void refreshRemainingCounter() {
@@ -193,6 +339,7 @@ public class ProgrammeController {
 
     public void enqueue(Programme p) {
         table.getItems().add(p);
+        sortTable();
     }
 
     public void enqueueAfterLast(Programme p) {
@@ -204,15 +351,62 @@ public class ProgrammeController {
         enqueue(p);
     }
 
+    void remove(String uuid) {
+
+        if (isRunning && uuid.equals(currentUUID)) {
+            return;
+        }
+
+        for (Programme p : table.getItems()) {
+            if (p.uuid.equals(uuid)) {
+                table.getItems().remove(p);
+                break;
+            }
+        }
+        if (isRunning) {
+            refreshCurrentPosition();
+        }
+    }
+
+    void move(String uuid, int t) {
+
+        for (Programme p : table.getItems()) {
+            if (p.uuid.equals(uuid)) {
+                p.setStartTime(t);
+            }
+        }
+
+        sortTable();
+
+    }
+
+    void refreshCurrentPosition() {
+        for (int i = 0; i < table.getItems().size(); i++) {
+            if (table.getItems().get(i).uuid.equals(currentUUID)) {
+                position = i;
+                break;
+            }
+        }
+    }
+
+    void sortTable() {
+        table.getItems().sort((o1,o2)->{
+            if (o1.getStartTimeInt() > o2.getStartTimeInt()) {
+                return 1;
+            }
+            return -1;
+        });
+        if (isRunning) {
+            refreshCurrentPosition();
+        }
+    }
+
     public void setVolume(float vol) {
         final FloatControl volumeControl = (FloatControl) audioDataLine.getControl( FloatControl.Type.MASTER_GAIN );
         volumeControl.setValue( 20.0f * (float) Math.log10( vol / 100.0 ) );
     }
 
     void setRunning(boolean running) {
-        if (!running) {
-            service.shutdownNow();
-        }
         isRunning = running;
         if (runStateChangeListener != null) {
             runStateChangeListener.onEvent(isRunning);
@@ -243,13 +437,5 @@ public class ProgrammeController {
 
     public void setRunStateChangeListener(RunStateChangeListener runStateChangeListener) {
         this.runStateChangeListener = runStateChangeListener;
-    }
-
-    public interface ElapsedTimeListener {
-        void onEvent(int elapsed);
-    }
-
-    public void setElapsedTimeListener(ElapsedTimeListener elapsedTimeListener) {
-        this.elapsedTimeListener = elapsedTimeListener;
     }
 }

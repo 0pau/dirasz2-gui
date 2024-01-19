@@ -34,14 +34,12 @@ public class AudioServer extends Thread {
     @Override
     public void run() {
         super.run();
-        System.out.println("server thread: " + Thread.currentThread().getName());
 
         while (true) {
             try {
                 Socket c = socket.accept();
                 if (!isClientConnected) {
                     out = c.getOutputStream();
-                    System.out.println("Client connected.");
                     setUdpStateLabel(true);
                 } else {
                     c.close();

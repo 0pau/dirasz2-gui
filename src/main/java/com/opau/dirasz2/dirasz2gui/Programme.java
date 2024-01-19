@@ -6,11 +6,15 @@ import javafx.beans.property.StringProperty;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class Programme {
+public class Programme extends Thread {
     Type type = Type.UNDEFINED;
     private String label;
     private int length = 0;
@@ -18,9 +22,12 @@ public class Programme {
     private ProgrammeStateListener stateListener;
     private ProgrammeState state = ProgrammeState.WAITING;
     DataAvailableListener dataAvailableListener;
+    PipedOutputStream out = new PipedOutputStream();
     public void setLength(int length) {
         this.length = length;
     }
+
+    public final String uuid = UUID.randomUUID().toString();
 
     public void setStartTime(int startTime) {
         this.startTime = startTime;
@@ -78,8 +85,10 @@ public class Programme {
         startTime = st;
     }
 
-    public void start() throws IOException, UnsupportedAudioFileException {
-        System.out.println("[PROGRAMME]\t"+getLabel()+" running");
+    @Override
+    public void run() {
+        super.run();
+        System.out.println("[P]\t"+getLabel()+" (" + uuid + ") running");
         setState(ProgrammeState.RUNNING);
         ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
         service.schedule(()->{
@@ -87,7 +96,16 @@ public class Programme {
         }, length, TimeUnit.SECONDS);
     }
 
-    public void stop() throws IOException {
+    public void connectStream(PipedInputStream is) {
+        try {
+            out.connect(is);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stopProgramme() {
+        setState(ProgrammeState.FINISHED);
     }
 
     public void setStateListener(ProgrammeStateListener stateListener) {
@@ -121,6 +139,8 @@ public class Programme {
                     return "Lejátszási lista";
                 case MACRO:
                     return "Makró";
+                case MANUAL:
+                    return "Kézi";
                 default:
                     return "Ismeretlen";
             }
@@ -155,7 +175,8 @@ public class Programme {
         }
     }
 
-    private void onFinish() {
+    void onFinish() {
+        System.out.println("Finished. - " + Thread.currentThread().getName());
         setState(ProgrammeState.FINISHED);
     }
 
@@ -165,5 +186,9 @@ public class Programme {
 
     public void setDataAvailableListener(DataAvailableListener dataAvailableListener) {
         this.dataAvailableListener = dataAvailableListener;
+    }
+
+    public ProgrammeState getProgrammeState() {
+        return state;
     }
 }

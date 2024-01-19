@@ -19,8 +19,11 @@ public class App extends Application {
     public Scene scene;
     public ProgrammeController programmeController;
     public AudioServer audioServer;
+    public AudioSourcesListManager audioSourcesListManager;
+    public LineMixer lineMixer;
+    public Recorder recorder;
     @Override
-    public void start(Stage stage) throws IOException, LineUnavailableException, UnsupportedAudioFileException {
+    public void start(Stage stage) throws Exception {
         FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource("main_window.fxml"));
         scene = new Scene(fxmlLoader.load(), 800, 640);
         stage.setOnCloseRequest((event)->{
@@ -58,11 +61,14 @@ public class App extends Application {
         if (os != null && os.startsWith("Mac"))
             ((MenuBar)scene.lookup("#menuBar")).useSystemMenuBarProperty().set(true);
         FileListViewController fileListViewController = new FileListViewController(this);
-        AudioSourcesListManager audioSourcesListManager = new AudioSourcesListManager(this);
+        lineMixer = new LineMixer();
+        lineMixer.start();
+        audioSourcesListManager = new AudioSourcesListManager(this);
         programmeController = new ProgrammeController(this);
         audioServer = new AudioServer(this);
         audioServer.start();
-
+        recorder = new Recorder(this);
+        //programmeController.enqueue(new PlaylistProgramme("/Users/opau/Music/teszt", 2));
         ((MainWindowController)fxmlLoader.getController()).setApp(this);
     }
 

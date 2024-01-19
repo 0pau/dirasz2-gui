@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="TOP_CENTER" minWidth="450.0" prefWidth="450.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.opau.dirasz2.dirasz2gui.MainWindowController">
+   <children>
+      <VBox spacing="20.0">
+         <children>
+            <VBox alignment="TOP_CENTER">
+               <children>
+                  <Label text="Műsor hozzáadása">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Label>
+                  <Label text="Válassza ki az alábbi legördülő menüből, hogy milyen műsort szeretne a listához adni." textAlignment="CENTER" wrapText="true" />
+               </children>
+            </VBox>
+            <VBox prefWidth="100.0" spacing="10.0">
+               <children>
+                  <HBox alignment="CENTER_LEFT" spacing="10.0">
+                     <children>
+                        <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Típus" textAlignment="RIGHT" />
+                        <ComboBox id="programmeTypeCombo" maxWidth="1.7976931348623157E308" prefWidth="0.0" promptText="Fájl" HBox.hgrow="ALWAYS" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" spacing="10.0">
+                     <children>
+                        <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Cím" textAlignment="RIGHT" />
+                        <TextField id="programmeLabelField" promptText="Adja meg a címet" HBox.hgrow="ALWAYS" />
+                     </children>
+                  </HBox>
+                  <VBox id="fileProgrammeProps" spacing="10.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Fájl helye" textAlignment="RIGHT" />
+                              <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                                 <children>
+                                    <Label id="fileProgrammePathLabel" maxWidth="1.7976931348623157E308" opacity="0.5" text="Nincs kiválasztva" HBox.hgrow="ALWAYS" />
+                                    <Button id="fileProgrammePathButton" minWidth="75.0" mnemonicParsing="false" prefWidth="75.0" text="Tallózás" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+                  <VBox id="playlistProgrammeProps" spacing="10.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Fájlok helye" textAlignment="RIGHT" />
+                              <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                                 <children>
+                                    <Label id="playlistProgrammePathLabel" maxWidth="1.7976931348623157E308" opacity="0.5" text="Nincs kiválasztva" HBox.hgrow="ALWAYS" />
+                                    <Button id="playlistProgrammePathButton" minWidth="75.0" mnemonicParsing="false" prefWidth="75.0" text="Tallózás" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Lejátszási sorrend" textAlignment="RIGHT" />
+                              <ComboBox id="playlistDirectionCombo" maxWidth="1.7976931348623157E308" prefWidth="0.0" promptText="Sorrendben" HBox.hgrow="ALWAYS" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Elemek száma" textAlignment="RIGHT" />
+                              <TextField id="playlistPlayCountField" promptText="Ide csak számokat írjon" text="0" HBox.hgrow="ALWAYS" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+                  <VBox id="manualProgrammeProps" spacing="10.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Műsor hossza" textAlignment="RIGHT" />
+                              <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                                 <children>
+                                    <Label id="programmeDurationLabel" maxWidth="1.7976931348623157E308" opacity="0.5" text="Nincs beállítva" HBox.hgrow="ALWAYS" />
+                                    <Button id="programmeDurationSetButton" mnemonicParsing="false" prefWidth="75.0" text="Beállítás" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+                  <HBox alignment="CENTER_LEFT" spacing="10.0">
+                     <children>
+                        <Label alignment="CENTER_RIGHT" contentDisplay="RIGHT" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" text="Kezdés időpontja" textAlignment="RIGHT" />
+                        <HBox alignment="CENTER_LEFT" spacing="5.0" HBox.hgrow="ALWAYS">
+                           <children>
+                              <Label id="startTimeLabel" maxWidth="1.7976931348623157E308" opacity="0.5" text="Az utolsó után" HBox.hgrow="ALWAYS" />
+                              <Button id="startTimeSetButton" mnemonicParsing="false" prefWidth="75.0" text="Beállítás" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </children>
+         <VBox.margin>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+         </VBox.margin>
+      </VBox>
+      <HBox alignment="CENTER_RIGHT" spacing="5.0">
+         <children>
+          <Button cancelButton="true" mnemonicParsing="false" prefWidth="75.0" text="Mégse" />
+            <Button id="saveButton" defaultButton="true" mnemonicParsing="false" text="Hozzáadás" />
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </HBox>
+   </children>
+</VBox>
