@@ -101,7 +101,7 @@ public class ProgrammeController {
     }
 
     public boolean start() {
-        if (table.getItems().isEmpty()) {
+        if (table.getItems().isEmpty() && !manual) {
             return false;
         }
         setRunning(true);

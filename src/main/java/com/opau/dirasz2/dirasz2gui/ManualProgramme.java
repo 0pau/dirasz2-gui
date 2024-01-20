@@ -18,18 +18,16 @@ public class ManualProgramme extends Programme {
     public void run() {
         super.run();
         try {
-
             PipedInputStream in = new PipedInputStream();
             a.lineMixer.out = new PipedOutputStream(in);
             a.lineMixer.open();
             while (getProgrammeState() == ProgrammeState.RUNNING) {
-                byte[] b = in.readNBytes(1024);
+                byte[] b = in.readNBytes(32);
                 out.write(b);
             }
+            System.out.println("Manual got out of loop");
             a.lineMixer.close();
             in.close();
-            a.lineMixer.out = null;
-            out.close();
             /*
             TargetDataLine l = a.audioSourcesListManager.sources.getFirst().line;
 
@@ -58,7 +56,12 @@ public class ManualProgramme extends Programme {
             l.stop();
              */
         } catch (Exception e) {
-            System.out.println(e);
+            try {
+                a.lineMixer.close();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            //System.out.println(e);
         }
     }
 }

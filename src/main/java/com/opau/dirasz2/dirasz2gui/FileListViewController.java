@@ -48,7 +48,7 @@ public class FileListViewController {
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-                } else if (itm.type.equals("remixal-file-music-fill")) {
+                } else if (itm.type.equals("mdi2m-music-clef-treble")) {
                     Programme p = null;
                     try {
                         p = new FileProgramme(itm.path);
@@ -81,9 +81,9 @@ public class FileListViewController {
                 itm.type = "DIR";
             } else {
                 if (isAudioFile(e.getName())) {
-                    itm.type = "remixal-file-music-fill";
+                    itm.type = "mdi2m-music-clef-treble";
                 } else if (e.getName().endsWith(".dprg")) {
-                    itm.type = "remixal-file-list-2-fill";
+                    itm.type = "mdi2f-file-import";
                 } else {
                     continue;
                 }
@@ -138,7 +138,7 @@ public class FileListViewController {
                 //icon.setIconLiteral("di-java");
                 //icon.setImage();
                 if (listItem.type == "DIR") {
-                    fi.setIconLiteral("remixal-folder-3-fill");
+                    fi.setIconLiteral("mdi2f-folder");
                 } else {
                     fi.setIconLiteral(listItem.type);
                 }

@@ -73,6 +73,16 @@ public class Utils {
 
     }
 
+    public static byte[] gain(byte[] x, double vol) {
+        for (int i = 0; i < x.length-1; i+=2) {
+            short sampleValue = (short) ((x[i + 1] & 0xFF) << 8 | (x[i] & 0xFF));
+            sampleValue = (short) (sampleValue * (vol / 100));
+            x[i] = (byte) (sampleValue & 0xFF);
+            x[i + 1] = (byte) ((sampleValue >> 8) & 0xFF);
+        }
+        return x;
+    }
+
     public static int getCurrentTimeInt() {
         Calendar c = Calendar.getInstance();
         return timeToInt(c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), c.get(Calendar.SECOND));
